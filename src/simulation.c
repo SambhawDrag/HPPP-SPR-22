@@ -64,7 +64,7 @@ int main()
     //defining parameters
     int numParticles = 1000;
     float delT = 0.01;
-    int numIters = 2000; // 720000;
+    int numIters = 20000; // 720000;
     float M = 1;
     float xSize = 100, ySize = 200, zSize = 400;
     float bodyRadius = 0.5;
@@ -85,7 +85,7 @@ int main()
 
     omp_set_num_threads(8);
 
-    double fulldt, fullt, firdt, firt, secdt, sect; //variables to count time
+    double totalTime = omp_get_wtime(); //variables to count time
 
     //looping over all timesteps
     for (int i = 0; i < numIters; i++)
@@ -156,6 +156,10 @@ int main()
             }
         }
     }
+
+    totalTime = omp_get_wtime() - totalTime;
+    printf("Total Simulation Time: %lf\n", totalTime);
+    printf("Average Step Time: %lf\n", totalTime/numIters);
 
     //save output to file
     generateOutputFile(outLog, numIters);

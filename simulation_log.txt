@@ -1,0 +1,12 @@
+System Specifications:
+OS: Windows 11
+Compiler: gcc
+Processor: Intel i5 8300
+Number of cores: 4
+Number of threads: 8
+Clock Speed: 2.3 Ghz
+
+Execution time:
+Number of Threads                 |   1   |   2   |   4   |   8   |  
+Total Time (hours)                | 27.62 | 14.29 | 8.584 | 6.671 |
+Average Iteration Time (seconds)  | 0.138 | 0.071 | 0.042 | 0.033 |

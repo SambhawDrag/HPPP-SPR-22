@@ -1,0 +1,3 @@
+Number of Threads                 |   1   |   2   |   4   |   8   |  
+Total Time (hours)                | 27.62 | 14.29 | 8.584 | 6.671 |
+Average Iteration Time (seconds)  | 0.138 | 0.071 | 0.042 | 0.033 |
