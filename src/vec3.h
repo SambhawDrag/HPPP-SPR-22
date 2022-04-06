@@ -46,10 +46,10 @@ struct vec3 constMul(struct vec3 a, float c)
     return r;
 }
 
-struct vec3 checkBounds(struct vec3 a, struct vec3 v, float x, float y, float z)
+struct vec3 checkBounds(struct vec3 a, struct vec3 v, float x, float y, float z, float r)
 {
-    if(a.x <= 0 || a.x >= x) v.x *= -1;
-    if(a.y <= 0 || a.y >= y) v.y *= -1;
-    if(a.z <= 0 || a.z >= z) v.z *= -1;
+    if(a.x - r <= 0 || a.x + r >= x) v.x *= -1;
+    if(a.y - r <= 0 || a.y + r >= y) v.y *= -1;
+    if(a.z - r <= 0 || a.z + r >= z) v.z *= -1;
     return v;
 }

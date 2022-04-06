@@ -1,14 +1,14 @@
 #include <omp.h>
 #include <stdio.h>
 #include <math.h>
-#include "vec3.h"
+#include "vec3.h"  //header file containing helper functions
 #include <stdlib.h>
 
+//function to read input
 void readInit(struct vec3 *output)
 {
     FILE *data;
     data = fopen("Trajectory.txt", "r");
-    // struct vec3 * initial_pos = (struct vec3*)malloc(1000*sizeof(struct vec3));
     int i, count = 0;
     if (data == NULL)
     {
@@ -28,108 +28,8 @@ void readInit(struct vec3 *output)
     fclose(data);
 }
 
-int main()
+void generateOutputFile(struct vec3 ** outLog, int numIters)
 {
-    int numParticles = 1000;
-    float delT = 0.01;
-    int numIters = 200; // 720000;
-    float M = 1;
-    float xSize = 50, ySize = 100, zSize = 300;
-
-    struct vec3 *posN, *posN1, *velN, *velNhalf, **outLog;
-    posN = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
-    posN1 = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
-    velN = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
-    velNhalf = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
-    outLog = (struct vec3 **)malloc((numIters / 100) * sizeof(struct vec3 *));
-    for (int i = 0; i < numIters / 100; i++)
-    {
-        outLog[i] = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
-    }
-
-    readInit(posN);
-
-    omp_set_num_threads(8);
-
-    for(int i=0; i<10; i++)printf("%f %f %f\n", posN[i].x, posN[i].y, posN[i].z);
-
-    double fulldt, fullt, firdt, firt, secdt, sect;
-
-    for (int i = 0; i < numIters; i++)
-    {
-        if(i%10==0)printf("jjj%d\n", i);
-        // fullt = omp_get_wtime();
-        // firt = omp_get_wtime();
-        // sect = omp_get_wtime();
-        #pragma omp parallel for
-        for (int j = 0; j < numParticles; j++)
-        {
-            struct vec3 fN;
-            fN.x = 0, fN.y = 0, fN.z = 0;
-
-            for (int k = 0; k < numParticles; k++)
-            {
-                if (k == j)
-                    continue;
-
-                float distSq = lenSquared(diff(posN[k], posN[j]));
-                struct vec3 dir = normalize(diff(posN[k], posN[j]));
-                struct vec3 force = constMul(dir, (M * M / distSq));
-
-                fN = sum(fN, force);
-            }
-
-            struct vec3 vHalf = sum(velN[j], constMul(fN, delT / (2 * M)));
-            // if(i%20 && j==50)printf("%f yolo \n", constMul(vHalf, delT).x);
-            posN1[j] = sum(posN[j], constMul(vHalf, delT));
-            // if(i%100==0 && j==50)printf("%f %f yolo \n", posN1[j].x, posN[j].x);
-            velNhalf[j] = vHalf;
-            velNhalf[j] = checkBounds(posN1[j], velNhalf[j], xSize, ySize, zSize);
-        }
-
-        // firdt = omp_get_wtime() - firt;
-        // sect = omp_get_wtime();
-        if(i%10==0)printf("djj%d\n", i);
-        #pragma omp parallel for
-        for (int j = 0; j < numParticles; j++)
-        {
-            struct vec3 fN;
-            fN.x = 0, fN.y = 0, fN.z = 0;
-
-            for (int k = 0; k < numParticles; k++)
-            {
-                if (k == j)
-                    continue;
-
-                float distSq = lenSquared(diff(posN1[k], posN1[j]));
-                struct vec3 dir = normalize(diff(posN1[k], posN1[j]));
-                struct vec3 force = constMul(dir, (M * M / distSq));
-
-                fN = sum(fN, force);
-            }
-            struct vec3 vFull = sum(velNhalf[j], constMul(fN, delT / (2 * M)));
-            velN[j] = vFull;
-            posN[j] = posN1[j];
-
-            if (i % 100 == 0)
-            {
-                // printf("%d %d\n", i, j);
-                outLog[i / 100, j] = &posN[j];
-            }
-        }
-        if(i%10==0)printf("djd%d\n", i);
-
-        // secdt = omp_get_wtime() - sect;
-        // fulldt = omp_get_wtime() - fullt;
-
-        // if(i%10 == 0)
-        // {
-        //     printf("%lf %lf %lf\n", firdt, secdt, fulldt);
-        // }
-    }
-
-    printf("\n yolo \n");
-    for(int i=0; i<10; i++)printf("%f %f %f\n", outLog[1][i].x, outLog[1][i].y, outLog[1][i].z);
     FILE *trajec;
     trajec = fopen("New_Trajectory.txt", "w");
 
@@ -155,6 +55,108 @@ int main()
         {
             fprintf(trajec, "%-8.2f", outLog[i][j].z);
         }
-        fprintf(trajec,"\n\n");
+        fprintf(trajec, "\n\n");
     }
+}
+
+int main()
+{
+    //defining parameters
+    int numParticles = 1000;
+    float delT = 0.01;
+    int numIters = 2000; // 720000;
+    float M = 1;
+    float xSize = 100, ySize = 200, zSize = 400;
+    float bodyRadius = 0.5;
+
+    //defining and allocating arrays to be used during simulation
+    struct vec3 *posN, *posN1, *velN, *velNhalf, **outLog;
+    posN = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
+    posN1 = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
+    velN = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
+    velNhalf = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
+    outLog = (struct vec3 **)malloc((numIters / 100) * sizeof(struct vec3 *));  //stores trajectories to be written in output file
+    for (int i = 0; i < numIters / 100; i++)
+    {
+        outLog[i] = (struct vec3 *)malloc(numParticles * sizeof(struct vec3));
+    }
+
+    readInit(posN); //read input file
+
+    omp_set_num_threads(8);
+
+    double fulldt, fullt, firdt, firt, secdt, sect; //variables to count time
+
+    //looping over all timesteps
+    for (int i = 0; i < numIters; i++)
+    {
+        //first parallel loop over all particles to calculate force and update speed and positions
+        #pragma omp parallel for
+        for (int j = 0; j < numParticles; j++)
+        {
+            //fN stores force on the particle
+            struct vec3 fN;
+            fN.x = 0, fN.y = 0, fN.z = 0;
+
+            //looping through all other particles and adding up forces
+            for (int k = 0; k < numParticles; k++)
+            {
+                if (k == j)
+                    continue;
+
+                float distSq = lenSquared(diff(posN[k], posN[j]));
+                struct vec3 dir = normalize(diff(posN[k], posN[j]));
+                struct vec3 force = constMul(dir, (M * M / distSq));
+
+                fN = sum(fN, force);
+            }
+
+            struct vec3 vHalf = sum(velN[j], constMul(fN, delT / (2 * M)));   //calculate half step velocity
+            posN1[j] = sum(posN[j], constMul(vHalf, delT));    //update position, store it in posN1 (not posN)
+            velNhalf[j] = vHalf;                               
+            velNhalf[j] = checkBounds(posN1[j], velNhalf[j], xSize, ySize, zSize, bodyRadius);   //check if particle is outside bounds, update if needed
+        }
+
+        //second parallel loop to update velocities and forces
+        #pragma omp parallel for
+        for (int j = 0; j < numParticles; j++)
+        {
+            struct vec3 fN;
+            fN.x = 0, fN.y = 0, fN.z = 0;
+            
+            //loop through all other particles
+            for (int k = 0; k < numParticles; k++)
+            {
+                if (k == j)
+                    continue;
+
+                float distSq = lenSquared(diff(posN1[k], posN1[j]));
+                struct vec3 dir = normalize(diff(posN1[k], posN1[j]));
+                struct vec3 force = constMul(dir, (M * M / distSq));
+
+                // chheck for collisions wiht other particles, exchange velocities on collision
+                if (distSq <= 2 * bodyRadius)
+                {
+                    struct vec3 temp = velNhalf[k];
+                    velNhalf[k] = velNhalf[j];
+                    velNhalf[j] = temp;
+                }
+
+                fN = sum(fN, force);
+            }
+            //update the full step velcity and position
+            struct vec3 vFull = sum(velNhalf[j], constMul(fN, delT / (2 * M)));
+            velN[j] = vFull;
+            posN[j] = posN1[j];
+
+            //save in output trajectory at every 100th iteration
+            if (i % 100 == 0)
+            {
+                outLog[i / 100][j] = (posN[j]);
+            }
+        }
+    }
+
+    //save output to file
+    generateOutputFile(outLog, numIters);
 }
